@@ -7,18 +7,24 @@ function generateRandomString(length) {
     return crypto.randomBytes(length).toString('hex');
 }
 
-
 const app = express();
 const port = 3000;
+
+// Middleware used to store the state parameter across multiple requests
+// This middleware adds a session object to every request (req) that your Express application handles.
+const session = require('express-session');
+app.use(session({ secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: false }));
 
 app.get('/', (req, res) => {
     res.send('This is supposed to be the homepage');
 });
 
-
 app.get('/login', (req, res) => {
     const scope = 'user-read-private user-read-email';
     const state = generateRandomString(16);
+
+    // Store the state in the user session (thanks to the middleware)
+    req.session.state = state;
 
     res.redirect('https://accounts.spotify.com/authorize' +
         '?response_type=code' +
@@ -30,6 +36,14 @@ app.get('/login', (req, res) => {
 
 app.get('/callback', async (req, res) => {
     const code = req.query.code;
+    const state = req.query.state;
+
+    // Check if the state matches the stored state
+    if (state !== req.session.state) {
+        res.send('State mismatch: Request may have been intercepted');
+        return;
+    }
+
     try {
         const response = await axios.post(
             'https://accounts.spotify.com/api/token',

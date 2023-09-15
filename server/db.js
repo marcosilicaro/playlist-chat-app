@@ -2,19 +2,15 @@
 
 // Import the Pool object from the 'pg' module
 const { Pool } = require('pg');
+require('dotenv').config();
 
 // Create a new Pool object with the database connection parameters
 const pool = new Pool({
-    // The host of the PostgreSQL server
-    host: 'localhost',
-    // The port of the PostgreSQL server
-    port: 5555,
-    // The name of the database to connect to
-    database: 'playlist-chat',
-    // The username to authenticate with
-    user: 'your_username',
-    // The password to authenticate with
-    password: 'your_password'
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    database: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD
 });
 
 // Export the pool object for use in other modules

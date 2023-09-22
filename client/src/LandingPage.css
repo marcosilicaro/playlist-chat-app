@@ -1,0 +1,116 @@
+.menu {
+    background-color: #1DB954;
+    display: flex;
+    justify-content: space-between;
+    padding: 20px;
+}
+
+.menu a:first-child {
+    padding: 10px 10px 10px 30px;
+}
+
+.menu a {
+    color: white;
+    text-decoration: none;
+    font-weight: 900;
+    /* Make the text bold */
+    font-size: 18px;
+    /* Increase the font size */
+}
+
+.menu-button {
+    margin-right: 30px;
+    padding: 10px;
+    color: white;
+    background-color: darkslategray;
+    border: none;
+    text-decoration: none;
+    font-weight: 900;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 10px;
+    /* Add rounded borders */
+}
+
+.content {
+    background-color: #1DB954;
+    /* Spotify green */
+    min-height: calc(100vh - 60px);
+    /* Set a minimum height */
+    display: flex;
+    /* Use Flexbox */
+    justify-content: center;
+    /* Center horizontally */
+    align-items: flex-start;
+    /* Align to the start vertically */
+    padding-top: 5vh;
+    /* Reduce the padding at the top */
+    text-align: center;
+    /* Center text */
+    flex-direction: column;
+    /* Stack children vertically */
+}
+
+.content h1 {
+    color: white;
+    /* Set text color */
+    font-size: 5.5em;
+    /* Set font size */
+    max-width: 800px;
+    /* Limit the width */
+    margin: 0 auto;
+    /* Remove the default margin and center the h1 */
+}
+
+.content p {
+    color: white;
+    /* Set text color */
+    font-size: 1.2em;
+    /* Set font size */
+    max-width: 60%;
+    /* Limit the width */
+    margin: 20px auto;
+}
+
+.content button {
+    display: block;
+    /* Make the button a block element */
+    width: 200px;
+    /* Set a specific width */
+    height: auto;
+    /* Let the browser calculate the height */
+    padding: 10px 20px;
+    /* Add some padding to give the button some height and width */
+    margin: 20px auto;
+    /* Center the button and add some space above and below */
+    /* Add other styles as needed */
+    color: white;
+    background-color: darkslategray;
+    border: none;
+    text-decoration: none;
+    font-weight: 900;
+    font-size: 15px;
+    cursor: pointer;
+    border-radius: 10px;
+    /* Add rounded borders */
+}
+
+.content :last-child {
+    /* Center the p and add some space above and below */
+    margin-bottom: 600px;
+}
+
+/* When the screen size is 1024px or less (typical for tablets and smaller devices) */
+@media screen and (max-width: 1024px) {
+    .content h1 {
+        max-width: 100%;
+        /* Increase the max-width for smaller screens */
+        font-size: 3.5em;
+    }
+}
+
+
+
+body {
+    overflow: hidden;
+}

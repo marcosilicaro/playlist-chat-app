@@ -1,0 +1,192 @@
+/* ChatInterface.css */
+.chat-interface {
+    display: flex;
+    height: 100vh;
+
+}
+
+.left-column {
+    min-width: 200px;
+    border-right: 1px solid lightgrey;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    /* Align items to the top */
+    padding: 10px 0px 0px 20px;
+    /* Add some padding at the top and bottom */
+}
+
+.left-column a {
+    display: block;
+    padding: 10px 0;
+    text-decoration: none;
+    color: black;
+}
+
+.left-column h2 {
+    color: #1DB954;
+    text-decoration: none;
+    font-weight: 900;
+    /* Make the text bold */
+    font-size: 18px;
+    /* Increase the font size */
+}
+
+.right-column {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+.chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 0px;
+    margin-bottom: 20px;
+    height: 80vh;
+    /* Adjust as needed */
+}
+
+.chat-message {
+    padding: 10px 0px 10px 0px;
+    line-height: 1.7;
+}
+
+.message-content div:first-child {
+    padding-top: 0px;
+}
+
+.message-content div:last-child {}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-message {
+    border: 16px solid #f3f3f3;
+    /* Light grey */
+    border-top: 16px solid #3498db;
+    /* Blue */
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 2s linear infinite;
+}
+
+.message-group {
+    display: flex;
+    border-bottom: 1px solid lightgrey;
+    padding: 20px 0px 20px 0px
+}
+
+.message-group.assistant {
+    background-color: #F7F7F8;
+}
+
+.message-content {
+    flex-grow: 1;
+    padding-right: 100px
+}
+
+.message-role {
+    min-width: 100px;
+    padding: 0px 10px 10px 50px;
+    /* Adjust as needed */
+}
+
+.assistant-indicator {
+    width: 30px;
+    height: 30px;
+    background-color: #1DB954;
+    /* Spotify-green color */
+    border-radius: 50%;
+    /* Make it a circle */
+    box-sizing: border-box;
+    /* Include padding and border in the element's total width and height */
+}
+
+.chat-input {
+    margin-top: auto;
+    width: 100%;
+    /* Set the width to 90% of the right column */
+    display: flex;
+    background: white;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.chat-input input {
+    flex-grow: 1;
+    margin-right: 10px;
+    height: 50px;
+    border: 1px solid lightgrey;
+    border-radius: 30px;
+    font-size: 15px;
+    /* Increase the font size */
+    padding-left: 30px;
+    /* Add padding to the left */
+}
+
+.chat-input button {
+    color: white;
+    width: 50px;
+    /* Set a specific width */
+    height: 50px;
+    /* Set a specific height */
+    border-radius: 50%;
+    /* Make the button round */
+    background-color: grey;
+    font-size: 24px;
+    outline: none;
+    /* Remove the outline */
+    border: none;
+    /* Remove the border */
+    box-shadow: none;
+    /* Remove the box shadow */
+}
+
+.chat-input button:active {
+    border: none;
+    /* Remove the border when the button is active */
+    box-shadow: none;
+    /* Remove the box shadow when the button is active */
+}
+
+@media (max-width: 1024px) {
+    .chat-interface {
+        flex-direction: column;
+    }
+
+    .left-column {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid lightgray;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-around;
+    }
+
+    .left-column a {
+        display: inline;
+    }
+
+    .chat-input {
+        width: 100%;
+        /* Set the width to 90% of the viewport */
+    }
+
+    .chat-messages {
+        height: 60vh;
+        /* Adjust as needed */
+        overflow-y: auto;
+    }
+}

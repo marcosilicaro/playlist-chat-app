@@ -1,4 +1,6 @@
 const express = require('express');
+const app = express();
+const cors = require('cors');
 require('dotenv').config();
 const crypto = require('crypto');
 const axios = require('axios');
@@ -9,24 +11,61 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
+const port = process.env.SERVER_PORT;
 
-function generateRandomString(length) {
-    return crypto.randomBytes(length).toString('hex');
-}
-
-const app = express();
-const port = 4000;
-
-// Middleware used to store the state parameter across multiple requests
-// This middleware adds a session object to every request (req) that your Express application handles.
+const redis = require('redis');
 const session = require('express-session');
-app.use(session({ secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: false }));
+const RedisStore = require('connect-redis').default;
+
+
+// Create a new Redis client
+const redisClient = redis.createClient({
+    host: 'localhost', // replace with your Redis host
+    port: 6379 // replace with your Redis port
+});
+
+// Connect to the Redis server
+// why connect-redis instead of using default express-session? https://capture.dropbox.com/deYSpFvzOWLslBSa
+// session info resets when sent from port 3000 to 4000? https://capture.dropbox.com/kHAQMbTgBi4kmMR4
+redisClient.connect()
+    .then(() => {
+        console.log('Connected to Redis server');
+    })
+    .catch(err => {
+        console.error('Error occurred while connecting to Redis server:', err);
+    });
+
+redisClient.on('error', err => {
+    console.error('Error occurred with Redis client:', err);
+});
+
+
+app.use(session({
+    store: new RedisStore({ client: redisClient }),
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+        httpOnly: true, // Don't allow the cookie to be accessed from client-side JavaScript
+        sameSite: 'lax' // Protect against CSRF attacks
+    }
+}));
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }));
 
 // parse application/json
 app.use(bodyParser.json());
+
+app.use(cors({
+    origin: 'http://localhost:3000', // Allow requests from this origin
+    credentials: true // Allow cookies
+}));
+
+function generateRandomString(length) {
+    return crypto.randomBytes(length).toString('hex');
+}
 
 async function createPlaylist(accessToken, userId, playlistName) {
 
@@ -159,6 +198,7 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/callback', async (req, res) => {
+
     // Extract the code and state from the request query
     const code = req.query.code;
     const state = req.query.state;
@@ -211,14 +251,17 @@ app.get('/callback', async (req, res) => {
         // Save the session data
         // Explanation why is method req.session.save() needed (https://capture.dropbox.com/1z8Am6QLkKocHwf1) 
         // --> because you're making two async requests post and get to get 'userID' and 'accessToken'
-        req.session.save(err => {
-            if (err) {
-                console.error(err);
-            } else {
-                console.log('running LOGIN')
-                console.log('userId', req.session.userId)
-                console.log('accessToken', req.session.accessToken)
-            }
+        await new Promise((resolve, reject) => {
+            req.session.save(err => {
+                if (err) {
+                    console.error(err);
+                    reject(err);
+                } else {
+                    console.log('Session saved', userId, req.session.accessToken);
+                    res.redirect(process.env.FRONTEND_URL + 'chat'); // Redirect to FRONTEND_URL
+                    resolve();
+                }
+            });
         });
 
 
@@ -255,9 +298,11 @@ app.get('/clean', async (req, res) => {
 });
 
 app.post('/chat', async (req, res) => {
-    const userId = req.session.userId || req.body.userId;
-    const accessToken = req.session.accessToken || req.body.accessToken;
+    const userId = req.session.userId //|| req.body.userId;
+    const accessToken = req.session.accessToken //|| req.body.accessToken;
     const message = req.body.message;
+
+    console.log('session', req.session.userId, req.session.accessToken)
 
     // Define required parameters
     const requiredParams = { message, userId, accessToken };
@@ -283,7 +328,7 @@ app.post('/chat', async (req, res) => {
     // Remember: first question assistant asks is: What do you like to do in your free time
     if (!conversation) {
         conversation = [
-            { role: 'system', content: 'As a music expert and psychologist, your task is to curate a personalized 20-track Spotify playlist for the user. Start by asking the user two questions, beginning with their movie preferences, to gauge their personality. After the questions, provide the 20-track playlist in an array using Spotify URI notation, like so: ["spotify:track:4iV5W9uYEdYUVa79Axb7Rh", "spotify:track:1301WleyT98MSxVHPZCA6M"] (and 18 more songs)' },
+            { role: 'system', content: 'As a music expert and psychologist, your task is to curate a personalized 20-track Spotify playlist for the user. Start by asking the user two questions, beginning with what they do in their free time, to gauge their personality. After the questions, provide the 20-track playlist in an array using Spotify URI notation, like so: ["spotify:track:4iV5W9uYEdYUVa79Axb7Rh", "spotify:track:1301WleyT98MSxVHPZCA6M"] (and 18 more songs)' },
             { role: 'assistant', content: 'Hi, I\'m your spotify assitant. I\'m going to ask you questions about you and, based on your answers, I\'m gonna give you a spotify playslist tailored just for you. Let\'s start. What do you like to do in your free time?' },
         ];
     } else {

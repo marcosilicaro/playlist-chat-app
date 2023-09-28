@@ -1,0 +1,10 @@
+FRONT-END
+- (capture) entender groupMessages 
+- (capture) entender groupMessages(messages).map...
+
+BACKEND
+(-) idear manera de que 'ahorrar' en gpt4 (ej: todas las preguntas gpt3.5 y traducir playlist a "spotify:track:4b07SOhvcZa9FoJrCmh9sk" con gpt4 una vez que user diga "yes")
+
+BOTH
+- una vez que user reciba lista, que aparezca bien formateada (con imagenes)
+- una vez que reciba lista, que de botones de opciones y que deshabilite chat (y se vea deshabilitado) (esto va a reducir errores)

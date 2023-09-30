@@ -178,6 +178,26 @@ async function generatePlaylistName(conversation) {
     return playlistName;
 }
 
+
+async function getSpotifyUri(songName, accessToken) {
+    console.log('analyzing', songName)
+    const response = await axios.get(`https://api.spotify.com/v1/search?q=${encodeURIComponent(songName)}&type=track&limit=1`, {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`
+        }
+    });
+
+    // Check if a track was found
+    if (response.data.tracks.items.length > 0) {
+        console.log(response.data.tracks.items[0].uri)
+        // Return the Spotify URI of the first track
+        return response.data.tracks.items[0].uri;
+    } else {
+        console.error(`No track found for song name: ${songName}`);
+        return null;
+    }
+}
+
 app.get('/', (req, res) => {
     res.send('This is supposed to be the homepage');
 });
@@ -298,11 +318,9 @@ app.get('/clean', async (req, res) => {
 });
 
 app.post('/chat', async (req, res) => {
-    const userId = req.session.userId //|| req.body.userId;
-    const accessToken = req.session.accessToken //|| req.body.accessToken;
+    const userId = req.session.userId;
+    const accessToken = req.session.accessToken;
     const message = req.body.message;
-
-    console.log('session', req.session.userId, req.session.accessToken)
 
     // Define required parameters
     const requiredParams = { message, userId, accessToken };
@@ -319,70 +337,73 @@ app.post('/chat', async (req, res) => {
 
     // Get the conversation history for this user from the database
     const retrievedConversation = await pool.query('SELECT conversation FROM users WHERE spotify_id = $1', [userId]);
-    // The '?' is the optional chaining operator. 
-    // It returns undefined if the operand is null or undefined, instead of causing an error.
-    // This is used to prevent errors when trying to access properties of undefined or null values.
     let conversation = retrievedConversation.rows[0]?.conversation;
 
     // If there's no conversation history, start a new one
-    // Remember: first question assistant asks is: What do you like to do in your free time
     if (!conversation) {
         conversation = [
-            { role: 'system', content: 'As a music expert and psychologist, your task is to curate a personalized 20-track Spotify playlist for the user. Start by asking the user two questions, beginning with what they do in their free time, to gauge their personality. After the questions, provide the 20-track playlist in an array using Spotify URI notation, like so: ["spotify:track:4iV5W9uYEdYUVa79Axb7Rh", "spotify:track:1301WleyT98MSxVHPZCA6M"] (and 18 more songs)' },
-            { role: 'assistant', content: 'Hi, I\'m your spotify assitant. I\'m going to ask you questions about you and, based on your answers, I\'m gonna give you a spotify playslist tailored just for you. Let\'s start. What do you like to do in your free time?' },
+            { role: 'system', content: 'You are an AI trained to generate Spotify playlists. When suggesting a playlist, provide the names of the tracks.' },
+            { role: 'system', content: 'As a music expert and psychologist, your task is to curate a personalized 10-track Spotify playlist for the user. Start by asking the user two questions, beginning with what they do in their free time, to gauge their personality. After the questions, provide the 10-track playlist as an array of track names, starting with the phrase "Here are your tracks: ".' },
+            { role: 'system', content: 'It is very important that you use the string "Here are your tracks: " when you are done building the 10-track spotify list' },
+            { role: 'assistant', content: 'Hi, I\'m your spotify assitant. I\'m going to ask you questions about you and, based on your answers, I\'m gonna give you a Spotify URIs playslist tailored just for you. Let\'s start. What do you like to do in your free time?' },
         ];
     } else {
-        // Convert the conversation from an array of strings to an array of objects
-        // Necessary as PostgreSQL returns arrays of JSON objects as arrays of strings
-        // JSON.parse turns each string back into a JavaScript object
         conversation = conversation.map(JSON.parse);
     }
 
     // Add the user's message to the conversation history
     conversation.push({ role: 'user', content: message });
-    try {
-        // Check if the user's message is "yes" and a playlist is stored in the session - && req.session.playlist
-        if (message.toLowerCase() === 'yes' && req.session.playlist) {
-            // Call  createPlaylist to create a new playlist
-            const playlistId = await createPlaylist(accessToken, userId, await generatePlaylistName(conversation))
 
-            // Call the add-track fn with all track URIs in the playlist
+    try {
+        if (message.toLowerCase() === 'yes' && req.session.playlist) {
+            const playlistId = await createPlaylist(accessToken, userId, await generatePlaylistName(conversation))
             await addTrack(accessToken, playlistId, req.session.playlist)
 
             const saveConfirmationMessage = 'Your playlist has been saved to your Spotify account.';
             conversation.push({ role: 'assistant', content: saveConfirmationMessage });
-
-            // Send the confirmation message back to the user
             res.send({ message: saveConfirmationMessage });
             return;
         }
 
-        // Attempt to generate a response from OpenAI's GPT-3 model
-
-        // Use OpenAI's GPT-3 model to generate a response based on the conversation history
         const response = await openai.chat.completions.create({
-            model: "gpt-4",
+            model: "gpt-3.5-turbo",
             messages: conversation,
         });
 
-        // Add the assistant's message to the conversation history
+        // Extract the assistant's message from the response
         let assistantMessage = response.choices[0].message.content;
+        // Add the assistant's message to the conversation history
         conversation.push({ role: 'assistant', content: assistantMessage });
 
-        // Check if the assistant's message contains a playlist
-        if (assistantMessage.includes('spotify:track:')) {
-            // Extract the playlist from the assistant's message
-            const playlist = assistantMessage.match(/spotify:track:\w+/g);
-            // Append a question to the assistant's message asking the user if they want to save the playlist
+        // Check if the assistant's message includes the specific phrase
+        if (assistantMessage.toLowerCase().includes('here are your tracks')) {
+            // Split the assistant's message by newline to get each line
+            const lines = assistantMessage.split('\n');
+            // Find the index of the line that contains "Here are your tracks:"
+            const startIndex = lines.findIndex(line => line.toLowerCase().includes('here are your tracks')) + 1;
+            // Extract the lines that contain song names
+            const songLines = lines.slice(startIndex);
+            // Remove the numbering and quotes from each line to get the song names
+            const songNames = songLines
+                .map(line => line.slice(3).trim().replace(/"/g, '')) // Remove the numbering and quotes
+                .filter(songName => songName); // Filter out any empty lines
+            const uris = [];
+            for (const songName of songNames) {
+                // await getSpotifyUri('sweet child o mine', accessToken);
+                const uri = await getSpotifyUri(songName, accessToken);
+                if (uri) {
+                    uris.push(uri);
+                }
+            }
+            console.log('uris', uris)
+
             assistantMessage += ' Would you like to save this playlist to your Spotify account?';
-            // Store the playlist in the session
-            req.session.playlist = playlist;
+            req.session.playlist = uris;
         }
 
-        // Update the conversation history in the database
+        // Update the user's conversation history in the database
         await pool.query('UPDATE users SET conversation = $1 WHERE spotify_id = $2', [conversation, userId]);
-
-        // Send the assistant's message back to the user
+        // Send the assistant's message as the response
         res.send({ message: assistantMessage });
 
     } catch (error) {

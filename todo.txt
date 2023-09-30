@@ -1,10 +1,14 @@
 FRONT-END
 - (capture) entender groupMessages 
 - (capture) entender groupMessages(messages).map...
+- una vez que mande mensaje, deshabilitar posibilidad de escribir mas hasta que haya un mensaje de assistant en la ui
 
 BACKEND
-(-) idear manera de que 'ahorrar' en gpt4 (ej: todas las preguntas gpt3.5 y traducir playlist a "spotify:track:4b07SOhvcZa9FoJrCmh9sk" con gpt4 una vez que user diga "yes")
+- REMOVER TRY CATCH THE FN EN SERVER, SI TOTAL YA HAY ERROR HANDLING EN RESPECTIVOS ENDPOINTS
 
 BOTH
 - una vez que user reciba lista, que aparezca bien formateada (con imagenes)
 - una vez que reciba lista, que de botones de opciones y que deshabilite chat (y se vea deshabilitado) (esto va a reducir errores)
+
+LEGAL
+https://capture.dropbox.com/wqoifCuM8c1sXDtr

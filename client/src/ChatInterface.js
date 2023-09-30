@@ -9,6 +9,8 @@ const ChatInterface = () => {
     const [messages, setMessages] = useState([]);
     // State for storing user input in chat
     const [userInput, setUserInput] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
 
     const messagesEndRef = useRef(null);
 
@@ -26,24 +28,39 @@ const ChatInterface = () => {
     // Function to handle form submission
     const handleSubmit = async (event) => {
         event.preventDefault();
-        // Add the user's message to the messages array
-        setMessages(prevMessages => [...prevMessages, { role: 'user', content: userInput }]);
+
+        // Save the user's input before clearing the input box
+        const userMessage = userInput;
+
+        // Clear the user input
+        setUserInput('');
+
+        // Disable form submission while submitting
+        setIsSubmitting(true);
+
+        // Add the user's input to the conversation
+        setMessages(prevMessages => [...prevMessages, { role: 'user', content: userMessage }]);
+
         // Add a loading message to the messages array
         const loadingMessageId = Date.now(); // Use the current timestamp as a unique id
         setMessages(prevMessages => [...prevMessages, { id: loadingMessageId, role: 'assistant', content: 'Loading...' }]);
+
         // Send a POST request to the chat endpoint
         try {
-            const response = await axios.post('http://localhost:4000/chat', { message: userInput }, { withCredentials: true });
+            const response = await axios.post('http://localhost:4000/chat', { message: userMessage }, { withCredentials: true });
+
             // Replace the loading message with the assistant's message
             setMessages(prevMessages => prevMessages.map(message => message.id === loadingMessageId ? { ...message, content: response.data.message } : message));
         } catch (error) {
             console.error('Error sending message:', error);
+
             // Optionally, you can replace the loading message with an error message
             setMessages(prevMessages => prevMessages.map(message => message.id === loadingMessageId ? { ...message, content: 'An error occurred. Please try again.' } : message));
+        } finally {
+            // Enable form submission after submitting
+            setIsSubmitting(false);
         }
-        // Clear the user input
-        setUserInput('');
-    }
+    };
 
     const handleClean = async (event) => {
         try {
@@ -118,7 +135,7 @@ const ChatInterface = () => {
                         onChange={handleInputChange}
                         placeholder="Type your message here"
                     />
-                    <button type="submit">&gt;</button>
+                    <button type="submit" disabled={isSubmitting}>&gt;</button>
                 </form>
             </div>
         </div>

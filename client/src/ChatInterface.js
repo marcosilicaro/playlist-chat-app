@@ -118,11 +118,32 @@ const ChatInterface = () => {
                                 {group[0].role === 'assistant' ? <div className="assistant-indicator"></div> : group[0].role}
                             </div>
                             <div className="message-content">
-                                {group.map((message, index) => (
-                                    <div key={index} className={`chat-message`}>
-                                        {message.content}
-                                    </div>
-                                ))}
+                                {group.map((message, index) => {
+                                    if (message.content.startsWith("Here's your spotify playlist")) {
+                                        // Apply special formatting for the playlist message
+                                        const playlistItems = message.content.split('\n').slice(1, -1);
+                                        return (
+                                            <div key={index} className={`chat-message playlist`}>
+                                                <strong>Here's your spotify playlist</strong><br /><br />
+                                                <div className="playlist-title">{playlistItems.shift()}</div>
+                                                {playlistItems.map((item, index) => (
+                                                    <div key={index} className="playlist-item">
+                                                        <span>{item}</span>
+                                                    </div>
+
+                                                ))}
+                                                <br /><strong>Would you like me to save it in your spotify account?</strong>
+                                            </div>
+                                        );
+                                    } else {
+                                        // Render other messages normally
+                                        return (
+                                            <div key={index} className={`chat-message`}>
+                                                {message.content}
+                                            </div>
+                                        );
+                                    }
+                                })}
                             </div>
                         </div>
                     ))}

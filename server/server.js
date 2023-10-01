@@ -180,7 +180,6 @@ async function generatePlaylistName(conversation) {
 
 
 async function getSpotifyUri(songName, accessToken) {
-    console.log('analyzing', songName)
     const response = await axios.get(`https://api.spotify.com/v1/search?q=${encodeURIComponent(songName)}&type=track&limit=1`, {
         headers: {
             'Authorization': `Bearer ${accessToken}`
@@ -189,7 +188,6 @@ async function getSpotifyUri(songName, accessToken) {
 
     // Check if a track was found
     if (response.data.tracks.items.length > 0) {
-        console.log(response.data.tracks.items[0].uri)
         // Return the Spotify URI of the first track
         return response.data.tracks.items[0].uri;
     } else {
@@ -342,9 +340,11 @@ app.post('/chat', async (req, res) => {
     // If there's no conversation history, start a new one
     if (!conversation) {
         conversation = [
-            { role: 'system', content: 'You are an AI trained to generate Spotify playlists. When suggesting a playlist, provide the names of the tracks.' },
-            { role: 'system', content: 'As a music expert and psychologist, your task is to curate a personalized 10-track Spotify playlist for the user. Start by asking the user two questions, beginning with what they do in their free time, to gauge their personality. After the questions, provide the 10-track playlist as an array of track names, starting with the phrase "Here are your tracks: ".' },
-            { role: 'system', content: 'It is very important that you use the string "Here are your tracks: " when you are done building the 10-track spotify list' },
+            { role: 'system', content: 'You are an AI trained to generate Spotify playlists.' },
+            { role: 'system', content: 'As a music expert and psychologist, your task is to curate a personalized 10-track Spotify playlist for the user. Start by asking the user two questions, beginning with what they do in their free time, to gauge their personality.' },
+            { role: 'system', content: 'After the questions, provide the 10-track playlist as an array of track names. The playlist should be formatted as a numbered list, with each track on a new line.' },
+            { role: 'system', content: 'Start the playlist with the phrase "Here are your tracks: " and follow it with the playlist. Do not add any other messages after the playlist.' },
+            { role: 'system', content: 'The last line in your message should be the last song of the suggested playlist. Do not add any additional messages like "I HOPE YOU LIKE IT" after the playlist.' },
             { role: 'assistant', content: 'Hi, I\'m your spotify assitant. I\'m going to ask you questions about you and, based on your answers, I\'m gonna give you a Spotify URIs playslist tailored just for you. Let\'s start. What do you like to do in your free time?' },
         ];
     } else {
@@ -388,6 +388,7 @@ app.post('/chat', async (req, res) => {
                 .map(line => line.slice(3).trim().replace(/"/g, '')) // Remove the numbering and quotes
                 .filter(songName => songName); // Filter out any empty lines
             const uris = [];
+            console.log('song names antes de ser enviadas a fn', songNames)
             for (const songName of songNames) {
                 // await getSpotifyUri('sweet child o mine', accessToken);
                 const uri = await getSpotifyUri(songName, accessToken);
@@ -395,10 +396,14 @@ app.post('/chat', async (req, res) => {
                     uris.push(uri);
                 }
             }
-            console.log('uris', uris)
 
-            assistantMessage += ' Would you like to save this playlist to your Spotify account?';
+            const responseMessage = "Here's your spotify playlist\n\n" +
+                songNames.map((songName, index) => `${index + 1}. "${songName}"`).join('\n')
+
+            res.send({ message: responseMessage });
+            await pool.query('UPDATE users SET conversation = $1 WHERE spotify_id = $2', [conversation, userId]);
             req.session.playlist = uris;
+            return
         }
 
         // Update the user's conversation history in the database

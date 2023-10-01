@@ -55,6 +55,27 @@
     line-height: 1.7;
 }
 
+.chat-message.assistant {
+    font-weight: bold;
+}
+
+.chat-message.playlist {
+    margin-left: 20px;
+}
+
+.chat-message.playlist-item {
+    margin-left: 20px;
+}
+
+.chat-message.playlist-item:before {
+    content: counter(item) ". ";
+    counter-increment: item;
+}
+
+.chat-message.playlist-item span {
+    margin-left: 5px;
+}
+
 .message-content div:first-child {
     padding-top: 0px;
 }

@@ -149,8 +149,7 @@ async function addTrack(accessToken, playlistId, trackUri) {
             }
         );
 
-        // Send a success message
-        console.log('Track added successfully');
+
         return response
 
     } catch (error) {
@@ -356,10 +355,11 @@ app.post('/chat', async (req, res) => {
 
     try {
         if (message.toLowerCase() === 'yes' && req.session.playlist) {
-            const playlistId = await createPlaylist(accessToken, userId, await generatePlaylistName(conversation))
+            const playlistName = await generatePlaylistName(conversation)
+            const playlistId = await createPlaylist(accessToken, userId, playlistName)
             await addTrack(accessToken, playlistId, req.session.playlist)
 
-            const saveConfirmationMessage = 'Your playlist has been saved to your Spotify account.';
+            const saveConfirmationMessage = 'Your playlist has been saved to your Spotify account. I gave the playlist the named of: ' + playlistName;
             conversation.push({ role: 'assistant', content: saveConfirmationMessage });
             res.send({ message: saveConfirmationMessage });
             return;
@@ -388,7 +388,6 @@ app.post('/chat', async (req, res) => {
                 .map(line => line.slice(3).trim().replace(/"/g, '')) // Remove the numbering and quotes
                 .filter(songName => songName); // Filter out any empty lines
             const uris = [];
-            console.log('song names antes de ser enviadas a fn', songNames)
             for (const songName of songNames) {
                 // await getSpotifyUri('sweet child o mine', accessToken);
                 const uri = await getSpotifyUri(songName, accessToken);
@@ -398,11 +397,12 @@ app.post('/chat', async (req, res) => {
             }
 
             const responseMessage = "Here's your spotify playlist\n\n" +
-                songNames.map((songName, index) => `${index + 1}. "${songName}"`).join('\n')
+                songNames.map((songName) => `${songName}`).join('\n')
 
             res.send({ message: responseMessage });
             await pool.query('UPDATE users SET conversation = $1 WHERE spotify_id = $2', [conversation, userId]);
             req.session.playlist = uris;
+            req.session.save()
             return
         }
 

@@ -1,7 +1,7 @@
 FRONT-END
 - (capture) entender groupMessages 
 - (capture) entender groupMessages(messages).map...
-- una vez que mande mensaje, deshabilitar posibilidad de escribir mas hasta que haya un mensaje de assistant en la ui
+- imagen personalizada de user en el chat
 
 BACKEND
 - REMOVER TRY CATCH THE FN EN SERVER, SI TOTAL YA HAY ERROR HANDLING EN RESPECTIVOS ENDPOINTS
@@ -12,3 +12,4 @@ BOTH
 
 LEGAL
 https://capture.dropbox.com/wqoifCuM8c1sXDtr
+- puedo ponerla en dev mode para mi portfolio? email

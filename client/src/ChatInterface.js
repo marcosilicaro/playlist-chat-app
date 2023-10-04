@@ -4,20 +4,39 @@ import { Link } from 'react-router-dom'; // Import the Link component
 import './ChatInterface.css';
 import axios from 'axios'; // Import axios at the top of your file
 
+
 const ChatInterface = () => {
     // State for storing messages
     const [messages, setMessages] = useState([]);
-    // State for storing user input in chat
+    // State for input messages
     const [userInput, setUserInput] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const [userName, setUserName] = useState('');
+    const [userImageUrl, setUserImageUrl] = useState('');
 
+    useEffect(() => {
+        const fetchUserData = async () => {
+            const response = await axios.get('http://localhost:4000/user', { withCredentials: true });
+            setUserName(response.data.userName);
+            setUserImageUrl(response.data.userImageUrl);
+            console.log(response.data.userImageUrl)
+        };
+
+        fetchUserData();
+    }, []);
+
+
+    // Ref for scrolling to bottom of messages
     const messagesEndRef = useRef(null);
 
+    // Function to scroll to bottom of messages
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-    }
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
 
+    // Call scrollToBottom when messages change
+    // When the messages state changes, React will re-run the useEffect hook and call the scrollToBottom function
     useEffect(scrollToBottom, [messages]);
 
     // saves text in chat box to userInput state
@@ -71,6 +90,10 @@ const ChatInterface = () => {
         }
     };
 
+    // Function to group messages by user
+    // example: https://capture.dropbox.com/5JbvtZYEzP8oh1se
+    // messages: [{ role: 'user', content: 'Hello' }, {role: 'user', content: 'How are you?' },{ role: 'assistant', content: 'I'm good. How about you?' }, { role: 'user', content: 'Great' }]
+    // groupedMessages: [[{ role: 'user', content: 'Hello' }, { role: 'user', content: 'How are you?' }], [{ role: 'assistant', content: 'I'm good. How about you?' }], [{ role: 'user', content: 'Great' }]]
     const groupMessages = (messages) => {
         const groupedMessages = [];
         let currentGroup = [];
@@ -78,15 +101,15 @@ const ChatInterface = () => {
         for (let i = 0; i < messages.length; i++) {
             currentGroup.push(messages[i]);
 
-            // If the next message is by a different user, or if this is the last message
+            // If this is the last message or if the next message is by a different user
             if (i === messages.length - 1 || messages[i].role !== messages[i + 1].role) {
                 groupedMessages.push(currentGroup);
                 currentGroup = [];
             }
         }
-
         return groupedMessages;
     };
+
 
     // Render the chat interface
     return (
@@ -112,13 +135,57 @@ const ChatInterface = () => {
                     </div>
 
                     {/* Map through messages and render each one */}
-                    {groupMessages(messages).map((group, index, array) => (
-                        <div key={index} className={`message-group ${group[0].role}`} ref={index === array.length - 1 ? messagesEndRef : null}>
+                    {/* {
+                        groupMessages(messages): 
+                        [
+                            [
+                                { role: 'user', content: 'Hello' }, 
+                                { role: 'user', content: 'How are you?' }
+                            ], 
+                            [
+                                { role: 'assistant', content: 'I'm good. How about you?' }
+                            ], 
+                            [
+                                { role: 'user', content: 'I need some recommendations' }
+                            ]
+                        ] 
+                    */}
+                    {/* 
+                    -- 1st iteration
+                    GroupArray #1: [ { role: 'user', content: 'Hello' }, { role: 'user', content: 'How are you?' } ]
+                    Index: 0
+                    Array: [ [Object], [Object], [Object] ] --> ALWAYS THE SAME (refers to groupMessages(messages))
+
+                    -- 2nd iteration
+                    GroupArray #2: [ { role: 'assistant', content: "I'm good. How about you?" }, { role: 'assistant', content: 'What can I help you with?' } ]
+                    Index: 1
+                    Array: [ [Object], [Object], [Object] ] --> ALWAYS THE SAME (refers to groupMessages(messages))
+
+                    -- 3rd iteration
+                    GroupArray #3: [ { role: 'user', content: 'I need some recommendations' } ]
+                    Index: 2
+                    Array: [ [Object], [Object], [Object] ] --> ALWAYS THE SAME (refers to groupMessages(messages))
+                    */}
+
+                    {/* purpose of key element is https://capture.dropbox.com/upDzUCOnTjC1pRGK */}
+
+
+                    {groupMessages(messages).map((groupArray, index, array) => (
+
+                        <div key={index} className={`message-group ${groupArray[0].role}`} ref={index === array.length - 1 ? messagesEndRef : null}>
                             <div className={`message-role`}>
-                                {group[0].role === 'assistant' ? <div className="assistant-indicator"></div> : group[0].role}
+                                {groupArray[0].role === 'assistant' ? (
+                                    <div className="assistant-indicator"></div>
+                                ) : (
+                                    userImageUrl !== null ? (
+                                        <img src={userImageUrl} alt="User Image" className="user-image" />
+                                    ) : (
+                                        <div className="user-indicator">{userName && userName[0]}</div>
+                                    )
+                                )}
                             </div>
                             <div className="message-content">
-                                {group.map((message, index) => {
+                                {groupArray.map((message, index) => {
                                     if (message.content.startsWith("Here's your spotify playlist")) {
                                         // Apply special formatting for the playlist message
                                         const playlistItems = message.content.split('\n').slice(1, -1);
@@ -161,6 +228,7 @@ const ChatInterface = () => {
             </div>
         </div>
     );
+
 }
 
 export default ChatInterface;

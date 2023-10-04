@@ -258,27 +258,29 @@ app.get('/callback', async (req, res) => {
 
         // Extract the user's Spotify ID from the response data
         const userId = userResponse.data.id;
+        const userImageUrl = userResponse.data.images[0] ? userResponse.data.images[0].url : null;
+        const userName = userResponse.data.display_name;
         // Insert the user's Spotify ID into the database, if it doesn't already exist
         pool.query('INSERT INTO users (spotify_id) VALUES ($1) ON CONFLICT (spotify_id) DO NOTHING', [userId])
             .catch(error => console.error(error));
 
         // Store the user's Spotify ID in the session
         req.session.userId = userId;
+        req.session.userImageUrl = userImageUrl;
+        console.log('/callback', userImageUrl)
+        req.session.userName = userName;
 
         // Save the session data
         // Explanation why is method req.session.save() needed (https://capture.dropbox.com/1z8Am6QLkKocHwf1) 
         // --> because you're making two async requests post and get to get 'userID' and 'accessToken'
-        await new Promise((resolve, reject) => {
-            req.session.save(err => {
-                if (err) {
-                    console.error(err);
-                    reject(err);
-                } else {
-                    console.log('Session saved', userId, req.session.accessToken);
-                    res.redirect(process.env.FRONTEND_URL + 'chat'); // Redirect to FRONTEND_URL
-                    resolve();
-                }
-            });
+        req.session.save(err => {
+            if (err) {
+                console.error(err);
+                res.status(500).send('Error saving session data');
+            } else {
+                // Redirect to the chat page once the session data is saved
+                res.redirect(process.env.FRONTEND_URL + 'chat');
+            }
         });
 
 
@@ -286,6 +288,13 @@ app.get('/callback', async (req, res) => {
         // Log any errors that occur during the request
         console.error(error);
     }
+});
+
+app.get('/user', (req, res) => {
+    const userImageUrl = req.session.userImageUrl;
+    const userName = req.session.userName;
+
+    res.send({ userImageUrl, userName });
 });
 
 app.get('/logout', (req, res) => {
